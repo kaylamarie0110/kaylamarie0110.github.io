@@ -56,11 +56,8 @@ var tooltip = d3.select("#content").append("div")
 					.attr("class", "tooltip")
 					.style("opacity", 0);
 
-var line = d3.svg.line().interpolate("monotone")
-				.x(function(d) { return x(d["num_mementos"]); })
-				.y(function(d) { return y(d["num_occurences"]); })
-
 d3.tsv("data/1441_pdf_data.tsv", function(error, data) {
+	console.log(data);
 	data.forEach(function(d) {
 		d["num_mementos"] = +d["num_mementos"];
 		d["num_occurences"] = +d["num_occurences"];
