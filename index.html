@@ -10,6 +10,11 @@
 	.dot {
 	  stroke: #000;
 	}
+	.line {
+	  fill: none;
+	  stroke: steelblue;
+	  stroke-width: 1.5px;
+	}
 	.tooltip {
 	  font-size: x-small;
 	  position: absolute;
@@ -54,8 +59,24 @@
   </div>
 </nav>
 
-<div id="uri_wealth" class="container">
+<div id="main_content" class="container">
+	<div class="row">
+		<label for="select_collection" class="col-lg-2 control-label">Collection ID: </label>
+		<div class="col-lg-2">
+			<select class="form-control" id="select_collection">
+				<!--<option value="1441">1441</option>
+				<option value="1784">1784</option>-->
+				<option value="1784_seed">1784 (Seed)</option>
+			</select>
+		</div>
+	</div>
 	<h3>Memento Distribution</h3>
+	<div class="row">
+		<div class="col-lg-8" id="uri_wealth"></div>
+		<div class="col-lg-4">
+			<img src="data/1784_seed_lower_cdf.png" alt="CDF" style="width:100%;">
+		</div>
+	</div>
 </div>
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
@@ -66,12 +87,12 @@ var margin = {top: 25, right: 100, bottom: 25, left: 100},
 	width = $("#uri_wealth").width() - margin.right - margin.left,
 	height = 450 - margin.top - margin.bottom;
 	
-var xValue = function(d) { return d["num_mementos"]; },
+var xValue = function(d) { return d.num_mementos; },
 	xScale = d3.scale.linear().range([0, width]), 
 	xMap = function(d) { return xScale(xValue(d));}, 
 	xAxis = d3.svg.axis().scale(xScale).orient("bottom");
 
-var yValue = function(d) { return d["num_occurences"]; },
+var yValue = function(d) { return d.num_urir; },
 	yScale = d3.scale.linear().range([height, 0]), 
 	yMap = function(d) { return yScale(yValue(d));}, 
 	yAxis = d3.svg.axis().scale(yScale).orient("left");
@@ -86,14 +107,29 @@ var tooltip = d3.select("#uri_wealth").append("div")
 					.attr("class", "tooltip")
 					.style("opacity", 0);
 
-d3.tsv("data/1441_pdf_data.tsv", function(error, data) {
-	data.forEach(function(d) {
-		d["num_mementos"] = +d["num_mementos"];
-		d["num_occurences"] = +d["num_occurences"];
+var line = d3.svg.line()
+    .x(function(d) { return xValue(d.num_mementos); })
+    .y(function(d) { return yValue(d.num_urir); });
+
+d3.tsv("data/1784_seed_pdf_data.tsv", function(error, data) {
+	var total_urir = 0;
+	var total_mementos = 0;
+	data.forEach(function(d) {	//Get totals
+		d.num_mementos = +d.num_mementos;
+		d.num_urir = +d.num_urir;
+		total_mementos += d.num_mementos;
+		total_urir += d.num_urir;
+	});
+	
+	data.forEach(function(d) {	//Get probabilities
+		d.memento_probability = d.num_mementos/total_mementos;
+		d.urir_probability = d.num_urir/total_urir
+		console.log(d.memento_probability);
+		console.log(d.urir_probability);
 	});
 	
 	// Add buffer to data domain so dots won't overlap axis
-	xScale.domain([d3.min(data, xValue)-1, d3.max(data, xValue)+1]);
+	xScale.domain([d3.min(data, xValue), d3.max(data, xValue)]);
 	yScale.domain([d3.min(data, yValue)-1, d3.max(data, yValue)+1]);
 	
 	// Create x-axis
@@ -118,8 +154,13 @@ d3.tsv("data/1441_pdf_data.tsv", function(error, data) {
 			.attr("y", 6)
 			.attr("dy", ".71em")
 			.style("text-anchor", "end")
-			.text("Number of URIs");
-		
+			.text("Number of URI-Rs");
+	
+	/*svg.append("path")
+      .data(data)
+      .attr("class", "line")
+      .attr("d", line);*/
+	
 	svg.selectAll(".dot")
 		.data(data)
 		.enter().append("circle")
@@ -132,7 +173,7 @@ d3.tsv("data/1441_pdf_data.tsv", function(error, data) {
 					.duration(200)
 					.style("opacity", .9);
 			tooltip.html("Num mementos: " + xValue(d) + "<br>" +
-						 "Num URIs: " + yValue(d))
+						 "Num URI-Rs: " + yValue(d))
 					.style("left", (d3.event.pageX + 10) + "px")
 					.style("top", (d3.event.pageY - 28) + "px");
 		})
